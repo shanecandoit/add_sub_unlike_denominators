@@ -24,6 +24,37 @@
             padding: 20px;
         }
 
+        /* Cozy out-of-focus pond + field background */
+        body::before {
+            content: '';
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+            background: linear-gradient(180deg, #bfeab6 30%, #9fe0ff 60%);
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            left: 50%;
+            top: 40%;
+            width: 70vmin;
+            height: 40vmin;
+            transform: translate(-50%, -50%);
+            background: radial-gradient(ellipse at center, #8fd3ff 0%, #64b5ff 40%, rgba(100,181,255,0.6) 60%);
+            filter: blur(24px) saturate(120%);
+            opacity: 0.9;
+            z-index: -1;
+            border-radius: 50% 50% 40% 40% / 60% 60% 40% 40%;
+        }
+
+        /* subtle floating highlights */
+        .float-blob { position: absolute; border-radius: 50%; filter: blur(12px); opacity: 0.35; }
+
+
         #app {
             background: var(--card);
             padding: 2rem;
@@ -31,6 +62,7 @@
             box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
             width: 100%;
             max-width: 500px;
+            position: relative;
         }
 
         .problem-display {
@@ -74,6 +106,38 @@
             opacity: 0.8;
         }
 
+        /* mastery tracker */
+        .mastery {
+            position: absolute;
+            right: 12px;
+            top: 12px;
+            background: rgba(37,99,235,0.06);
+            border: 1px solid rgba(37,99,235,0.12);
+            color: var(--primary);
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .mastery .dot { width: 10px; height: 10px; border-radius: 50%; background: #cbd5e1; }
+        .mastery .dot.active { background: var(--success); box-shadow: 0 0 8px rgba(34,197,94,0.6); }
+
+        /* particle and confetti layers */
+        .particle-layer { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+        .particle { position: absolute; width: 12px; height: 12px; border-radius: 50%; opacity: 0.9; transform: translate(-50%,-50%); }
+
+        .confetti-overlay { position: fixed; left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:9999; }
+        .confetti-piece { position: absolute; width:10px;height:16px;opacity:0.95; transform-origin:center; }
+
+        @keyframes confetti-fall {
+            0% { transform: translateY(-10vh) rotate(0deg); opacity:1 }
+            100% { transform: translateY(110vh) rotate(720deg); opacity:0.9 }
+        }
+
         input {
             width: 50px;
             padding: 5px;
@@ -86,6 +150,14 @@
         input.correct {
             border-color: var(--success);
             background: #f0fdf4;
+        }
+
+        .input-burst { animation: pop 400ms ease; }
+
+        @keyframes pop {
+            0% { transform: scale(0.85); }
+            60% { transform: scale(1.08); }
+            100% { transform: scale(1); }
         }
 
         input.wrong {
@@ -118,6 +190,12 @@
 <body>
 
     <div id="app">
+        <div class="mastery" title="Consecutive problems solved">
+            <div id="mastery-dots"></div>
+            <div id="mastery-label">Streak: <span id="streak-count">ready...</span></div>
+        </div>
+        <div class="particle-layer" id="particles"></div>
+        <div class="confetti-overlay" id="confetti"></div>
         <div id="problem" class="problem-display"></div>
 
         <div id="step1" class="step active">
@@ -162,6 +240,80 @@
         function gcd(a, b) { return b === 0 ? a : gcd(b, a % b); }
         function lcm(a, b) { return (a * b) / gcd(a, b); }
 
+        // Mastery tracking
+        state.streak = 0;
+
+        function updateMasteryUI() {
+            const s = Number(state.streak) || 0;
+            document.getElementById('streak-count').innerText = s > 0 ? s : 'ready...';
+            const dots = document.getElementById('mastery-dots');
+            dots.innerHTML = '';
+            for (let i = 0; i < 5; i++) {
+                const d = document.createElement('div');
+                d.className = 'dot' + (i < s ? ' active' : '');
+                dots.appendChild(d);
+            }
+        }
+
+        function playParticleAt(x, y, color) {
+            const c = document.getElementById('particles');
+            for (let i = 0; i < 8; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                p.style.left = x + 'px';
+                p.style.top = y + 'px';
+                p.style.background = color || '#ffd54f';
+                p.style.opacity = (0.6 + Math.random() * 0.4).toFixed(2);
+                p.style.width = (6 + Math.random() * 10) + 'px';
+                p.style.height = p.style.width;
+                const dx = (Math.random() - 0.5) * 120;
+                const dy = -30 - Math.random() * 80;
+                p.animate([
+                    { transform: `translate(0,0)`, opacity: 1 },
+                    { transform: `translate(${dx}px, ${dy}px) rotate(${Math.random()*360}deg)`, opacity: 0 }
+                ], { duration: 700 + Math.random() * 400, easing: 'cubic-bezier(.2,.8,.2,1)' });
+                c.appendChild(p);
+                setTimeout(() => p.remove(), 1400);
+            }
+        }
+
+        function launchConfetti(number) {
+            const overlay = document.getElementById('confetti');
+            overlay.innerHTML = '';
+            const colors = ['#f97316','#f43f5e','#60a5fa','#34d399','#f59e0b'];
+            for (let i = 0; i < 60; i++) {
+                const el = document.createElement('div');
+                el.className = 'confetti-piece';
+                el.style.left = Math.random() * 100 + '%';
+                el.style.background = colors[i % colors.length];
+                el.style.width = (6 + Math.random() * 10) + 'px';
+                el.style.height = (10 + Math.random() * 14) + 'px';
+                el.style.top = (-10 - Math.random() * 20) + 'vh';
+                el.style.transform = `rotate(${Math.random()*360}deg)`;
+                el.style.animation = `confetti-fall ${1500 + Math.random()*2000}ms linear forwards`;
+                overlay.appendChild(el);
+                setTimeout(() => el.remove(), 4000);
+            }
+
+            // big number burst
+            const badge = document.createElement('div');
+            badge.style.position = 'fixed';
+            badge.style.left = '50%';
+            badge.style.top = '25%';
+            badge.style.transform = 'translate(-50%,-50%)';
+            badge.style.background = 'rgba(255,255,255,0.95)';
+            badge.style.border = '6px solid rgba(37,99,235,0.12)';
+            badge.style.borderRadius = '24px';
+            badge.style.padding = '18px 28px';
+            badge.style.fontSize = '48px';
+            badge.style.color = 'var(--primary)';
+            badge.style.zIndex = 10000;
+            badge.style.boxShadow = '0 8px 30px rgba(2,6,23,0.2)';
+            badge.innerText = `+${number} 🎉`;
+            document.body.appendChild(badge);
+            setTimeout(() => badge.remove(), 2600);
+        }
+
         function generateProblem() {
             const d1 = Math.floor(Math.random() * 9) + 2;
             let d2 = Math.floor(Math.random() * 9) + 2;
@@ -197,14 +349,22 @@
             document.getElementById('step1').classList.add('active');
             document.querySelectorAll('input').forEach(i => { i.value = ''; i.className = ''; });
             document.getElementById('success-msg').classList.add('hidden');
+            updateMasteryUI();
         }
 
         function checkLCD() {
             const val = parseInt(document.getElementById('lcd-input').value);
             if (val === state.lcd) {
+                document.getElementById('lcd-input').classList.add('correct','input-burst');
+                setTimeout(()=>document.getElementById('lcd-input').classList.remove('input-burst'),420);
+                // small particle at input
+                const r = document.getElementById('lcd-input').getBoundingClientRect();
+                playParticleAt(r.left + r.width/2, r.top + r.height/2, '#34d399');
                 completeStep('step1', 'step2');
             } else {
                 markError('lcd-input');
+                // reset streak if they make visible mistakes
+                state.streak = 0; updateMasteryUI();
             }
         }
 
@@ -212,10 +372,14 @@
             const v1 = parseInt(document.getElementById('equiv-n1').value);
             const v2 = parseInt(document.getElementById('equiv-n2').value);
             if (v1 === state.en1 && v2 === state.en2) {
+                ['equiv-n1','equiv-n2'].forEach(id=>{document.getElementById(id).classList.add('correct','input-burst'); setTimeout(()=>document.getElementById(id).classList.remove('input-burst'),420)});
+                const r = document.getElementById('equiv-n1').getBoundingClientRect();
+                playParticleAt(r.left + r.width/2, r.top + r.height/2, '#60a5fa');
                 completeStep('step2', 'step3');
             } else {
                 if (v1 !== state.en1) markError('equiv-n1');
                 if (v2 !== state.en2) markError('equiv-n2');
+                state.streak = 0; updateMasteryUI();
             }
         }
 
@@ -224,8 +388,21 @@
             if (val === state.ansN) {
                 document.getElementById('step3').classList.replace('active', 'completed');
                 document.getElementById('success-msg').classList.remove('hidden');
+                document.getElementById('final-n').classList.add('correct','input-burst');
+                setTimeout(()=>document.getElementById('final-n').classList.remove('input-burst'),420);
+                const r = document.getElementById('final-n').getBoundingClientRect();
+                playParticleAt(r.left + r.width/2, r.top + r.height/2, '#f97316');
+
+                // increment streak and check mastery
+                state.streak = (state.streak || 0) + 1;
+                if (state.streak >= 5) {
+                    launchConfetti(state.streak);
+                    state.streak = 0; // reset after celebration
+                }
+                updateMasteryUI();
             } else {
                 markError('final-n');
+                state.streak = 0; updateMasteryUI();
             }
         }
 
