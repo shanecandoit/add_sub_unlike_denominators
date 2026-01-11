@@ -25,7 +25,6 @@ Construct a single-file HTML5/JavaScript application serving as an interactive w
     - Implement large, accessible font sizes (min 18px).
     - Use standard fraction notation: numerator over a horizontal rule over the denominator.
 
-
 - State Management: Maintain an object to track the current problem's state: `rawFractions`, `commonDenominator`, `intermediateNumerators`, and `finalSimplifiedAnswer`.
 
 ## Styling Constraints

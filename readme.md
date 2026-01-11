@@ -63,6 +63,18 @@ Voila! You have your own custom educational tool.
 
 ---
 
+## Sample Problem
+
+![screenshot](screenshot.png)
+
+---
+
 ## Tips for Success
 *   **Iterate:** If the app isn't quite right, don't give up! Go back to Step 2, update your `prompt.md` with the correction, and generate the code again.
 *   **Keep it Simple:** Single-file HTML apps are the easiest to manage and share. You can email them or put them on a USB drive.
+
+---
+
+## Publishing & Hosting
+
+To publish your app and host it with GitHub Pages, see [Publishing to GitHub and hosting with GitHub Pages](publish.md).
