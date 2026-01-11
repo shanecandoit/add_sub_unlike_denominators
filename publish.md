@@ -35,7 +35,7 @@ Prerequisites
 
 - It usually takes a few minutes. Your site URL will be:
 
-  https://<your-username>.github.io/<repository-name>/
+  `https://<your-username>.github.io/<repository-name>/`
 
 - VS Code may show the URL in the output or the Git panel link. Open that URL in a browser to see your live app.
 
